@@ -1,7 +1,8 @@
 inherited WItem: TWItem
-  Caption = 'WItem'
+  Caption = 'Item'
   ClientHeight = 236
   ClientWidth = 258
+  OnDestroy = FormDestroy
   ExplicitWidth = 274
   ExplicitHeight = 274
   PixelsPerInch = 96
@@ -9,35 +10,35 @@ inherited WItem: TWItem
   inherited PanelControls: TPanel
     Width = 258
     Height = 209
-    ExplicitWidth = 418
-    ExplicitHeight = 255
+    ExplicitWidth = 258
+    ExplicitHeight = 209
     object LabelName: TLabel
       Left = 16
       Top = 13
-      Width = 52
+      Width = 27
       Height = 13
-      Caption = 'LabelName'
+      Caption = 'Name'
     end
     object LabelAlias: TLabel
       Left = 16
       Top = 59
-      Width = 47
+      Width = 22
       Height = 13
-      Caption = 'LabelAlias'
+      Caption = 'Alias'
     end
     object LabelType: TLabel
       Left = 16
       Top = 105
-      Width = 49
+      Width = 24
       Height = 13
-      Caption = 'LabelType'
+      Caption = 'Type'
     end
     object LabelPath: TLabel
       Left = 16
       Top = 151
-      Width = 47
+      Width = 22
       Height = 13
-      Caption = 'LabelPath'
+      Caption = 'Path'
     end
     object EditName: TDBEdit
       Left = 16
@@ -85,15 +86,15 @@ inherited WItem: TWItem
   inherited PanelTools: TPanel
     Top = 209
     Width = 258
-    ExplicitTop = 255
-    ExplicitWidth = 418
+    ExplicitTop = 209
+    ExplicitWidth = 258
     inherited ButtonOk: TButton
       Left = 131
-      ExplicitLeft = 291
+      ExplicitLeft = 131
     end
     inherited ButtonCancel: TButton
       Left = 197
-      ExplicitLeft = 357
+      ExplicitLeft = 197
     end
   end
   object DataSource: TDataSource

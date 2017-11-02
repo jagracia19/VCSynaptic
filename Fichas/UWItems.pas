@@ -54,6 +54,7 @@ type
     FDataModule: TDMItems;
     FOnCompose: TItemNameEvent;
     FOnEditVersion: TItemNameEvent;
+    function AddItem: Boolean;
     procedure DoCompose(const ItemName: string); virtual;
     procedure DoEditVersion(const ItemName: string); virtual;
     procedure LoadConfig;
@@ -134,22 +135,7 @@ end;
 
 procedure TWItems.ActionAddExecute(Sender: TObject);
 begin
-  Application.CreateForm(TWItem, WItem);
-  try
-    WItem.DataSet := DataSet;
-    DataSet.Insert;
-    if WItem.ShowModal = mrOk then
-      try
-        DataSet.Post;
-        DataSet.UpdateTransaction.CommitRetaining;
-      except
-        DataSet.Cancel;
-        raise;
-      end
-    else DataSet.Cancel;
-  finally
-    FreeAndNil(WItem);
-  end;
+  AddItem;
 end;
 
 procedure TWItems.ActionCloseExecute(Sender: TObject);
@@ -204,6 +190,28 @@ procedure TWItems.ActionVersionsExecute(Sender: TObject);
 begin
   if DataSet.Active then
     DoEditVersion(DataSet.FieldByName('name').AsString);
+end;
+
+function TWItems.AddItem: Boolean;
+begin
+  Result := False;
+  Application.CreateForm(TWItem, WItem);
+  try
+    WItem.DataSet := DataSet;
+    DataSet.Insert;
+    if WItem.ShowModal = mrOk then
+      try
+        DataSet.Post;
+        DataSet.UpdateTransaction.CommitRetaining;
+        Result := True;
+      except
+        DataSet.Cancel;
+        raise;
+      end
+    else DataSet.Cancel;
+  finally
+    FreeAndNil(WItem);
+  end;
 end;
 
 procedure TWItems.DBGridDrawColumnCell(Sender: TObject; const Rect: TRect;
