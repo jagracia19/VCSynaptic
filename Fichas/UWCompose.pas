@@ -5,7 +5,7 @@ interface
 uses
   VCSynaptic.Classes,
   UDMCompose,
-  pFIBDataSet,
+  pFIBDatabase, pFIBDataSet,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ComCtrls, Grids, Generics.Collections;
 
@@ -53,6 +53,8 @@ type
     FVisibleItems: TList<TItemNode>;
     FItemTypes: TItemTypeSet;
     FInMouseClick: Boolean;
+    FDatabase: TpFIBDatabase;
+    FTransaction: TpFIBTransaction;
     procedure InitGrid;
     procedure InitItemTypes;
     procedure UpdateItemTree;
@@ -62,6 +64,8 @@ type
     procedure SetDataModule(const Value: TDMCompose);
     procedure SetItems(const Value: TItemList);
     procedure SetItemTypes(const Value: TItemTypeSet);
+    procedure SetDatabase(const Value: TpFIBDatabase);
+    procedure SetTransaction(const Value: TpFIBTransaction);
   protected
     property Item: TItem read FItem write FItem;
     property Root: TItemNode read FRoot write FRoot;
@@ -69,7 +73,9 @@ type
   public
     procedure UpdateLanguage;
     procedure Compose(const AItemName: string; AVersionOrder: Integer);
-    property DataModule: TDMCompose read FDataModule write SetDataModule;
+    property Database: TpFIBDatabase read FDatabase write SetDatabase;
+    property Transaction: TpFIBTransaction read FTransaction write SetTransaction;
+    //property DataModule: TDMCompose read FDataModule write SetDataModule;
     property Items: TItemList read FItems write SetItems;
     property ItemTypes: TItemTypeSet read FItemTypes write SetItemTypes;
   end;
@@ -285,10 +291,10 @@ end;
 
 procedure TWCompose.Compose(const AItemName: string; AVersionOrder: Integer);
 begin
-  Item := TDatabaseRelation.ReadItemVersion(DataModule.Database,
-      DataModule.Transaction, Items, AItemName, AVersionOrder);
-  TDatabaseRelation.ReadItemChildren(DataModule.Database,
-      DataModule.Transaction, Items, FItem);
+  Item := TDatabaseRelation.ReadItemVersion(Database,
+      Transaction, Items, AItemName, AVersionOrder);
+  TDatabaseRelation.ReadItemChildren(Database,
+      Transaction, Items, FItem);
   UpdateItemTree;
   ActualizarVisibleItems;
   UpdateGrid(VisibleItems.Count);
@@ -723,6 +729,11 @@ begin
     FItemTypes := FItemTypes + [itemType];
 end;
 
+procedure TWCompose.SetDatabase(const Value: TpFIBDatabase);
+begin
+  FDatabase := Value;
+end;
+
 procedure TWCompose.SetDataModule(const Value: TDMCompose);
 begin
   FDataModule := Value;
@@ -739,6 +750,11 @@ begin
   begin
     FItemTypes := Value;
   end;
+end;
+
+procedure TWCompose.SetTransaction(const Value: TpFIBTransaction);
+begin
+  FTransaction := Value;
 end;
 
 procedure TWCompose.UpdateGrid(ARowCount: Integer);

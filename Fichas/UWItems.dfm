@@ -12,6 +12,7 @@ object WItems: TWItems
   Font.Style = []
   OldCreateOrder = False
   OnClose = FormClose
+  OnCreate = FormCreate
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -73,9 +74,9 @@ object WItems: TWItems
   end
   object DBGrid: TDBGrid
     Left = 0
-    Top = 38
+    Top = 79
     Width = 600
-    Height = 508
+    Height = 467
     Align = alClient
     DefaultDrawing = False
     PopupMenu = PopupMenuGrid
@@ -87,6 +88,30 @@ object WItems: TWItems
     TitleFont.Name = 'Tahoma'
     TitleFont.Style = []
     OnDrawColumnCell = DBGridDrawColumnCell
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 38
+    Width = 600
+    Height = 41
+    Align = alTop
+    TabOrder = 2
+    ExplicitLeft = 216
+    ExplicitTop = 272
+    ExplicitWidth = 185
+    object PanelDropFile: TPanel
+      Left = 1
+      Top = 1
+      Width = 598
+      Height = 39
+      Align = alClient
+      BevelOuter = bvNone
+      TabOrder = 0
+      ExplicitLeft = 208
+      ExplicitTop = 0
+      ExplicitWidth = 185
+      ExplicitHeight = 41
+    end
   end
   object ActionList: TActionList
     Images = DMImages.ImageListToolbar

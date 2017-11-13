@@ -7,9 +7,25 @@ uses
   UDMItems,
   pFIBDataSet,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ActnList, Grids, DBGrids, ComCtrls, ToolWin, IniFiles, Menus;
+  Dialogs, ActnList, Grids, DBGrids, ComCtrls, ToolWin, IniFiles, Menus,
+  ShellAPI, ExtCtrls;
 
 type
+  TFileNameEvent = procedure (Sender: TObject; const Filename: string) of object;
+
+  TDropFileControl = class(TPanel)
+  private
+    FOnDropFile: TFileNameEvent;
+  protected
+    procedure WMDropFiles(var Msg: TWMDropFiles); message WM_DROPFILES;
+    procedure DoDropFile(const Filename: string);
+    procedure CreateWnd; override;
+    procedure DestroyWnd; override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    property OnDropFile: TFileNameEvent read FOnDropFile write FOnDropFile;
+  end;
+
   TWItems = class(TForm)
     ToolBar1: TToolBar;
     ToolButtonRefresh: TToolButton;
@@ -35,6 +51,9 @@ type
     MIVersions: TMenuItem;
     ToolButtonAdd: TToolButton;
     ActionAdd: TAction;
+    Panel1: TPanel;
+    PanelDropFile: TPanel;
+    procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormShow(Sender: TObject);
     procedure DBGridDrawColumnCell(Sender: TObject; const Rect: TRect;
@@ -54,6 +73,8 @@ type
     FDataModule: TDMItems;
     FOnCompose: TItemNameEvent;
     FOnEditVersion: TItemNameEvent;
+    FDropFileControl: TDropFileControl;
+    procedure HandleDropFile(Sender: TObject; const Filename: string);
     function AddItem: Boolean;
     procedure DoCompose(const ItemName: string); virtual;
     procedure DoEditVersion(const ItemName: string); virtual;
@@ -244,9 +265,22 @@ begin
   Action := caFree;
 end;
 
+procedure TWItems.FormCreate(Sender: TObject);
+begin
+  FDropFileControl := TDropFileControl.Create(Self);
+  FDropFileControl.Parent := PanelDropFile;
+  FDropFileControl.Align := alClient;
+  FDropFileControl.OnDropFile := HandleDropFile;
+end;
+
 procedure TWItems.FormShow(Sender: TObject);
 begin
   LoadConfig;
+end;
+
+procedure TWItems.HandleDropFile(Sender: TObject; const Filename: string);
+begin
+  Caption := Filename;
 end;
 
 procedure TWItems.LoadConfig;
@@ -273,6 +307,53 @@ end;
 
 procedure TWItems.UpdateLanguage;
 begin
+end;
+
+{ TDropFileControl }
+
+constructor TDropFileControl.Create(AOwner: TComponent);
+begin
+  inherited;
+  Caption := 'Drop file';
+  Font.Style := Font.Style + [fsBold];
+  Font.Color := clSilver;
+  Font.Size := 12;
+end;
+
+procedure TDropFileControl.CreateWnd;
+begin
+  inherited;
+  DragAcceptFiles(Handle, True);
+end;
+
+procedure TDropFileControl.DestroyWnd;
+begin
+  DragAcceptFiles(Handle, False);
+  inherited;
+end;
+
+procedure TDropFileControl.DoDropFile(const Filename: string);
+begin
+  if Assigned(FOnDropFile) then FOnDropFile(Self, Filename);
+end;
+
+procedure TDropFileControl.WMDropFiles(var Msg: TWMDropFiles);
+var hDrop     : THandle;
+    fileCount : Integer;
+    nameLen   : Integer;
+    I         : Integer;
+    st        : string;
+begin
+  hDrop := Msg.Drop;
+  fileCount:= DragQueryFile (hDrop , $FFFFFFFF, nil, 0);
+  for I := 0 to fileCount-1 do
+  begin
+    nameLen:= DragQueryFile(hDrop, I, nil, 0) + 1;
+    SetLength(st, nameLen);
+    DragQueryFile(hDrop, I, Pointer(st), NameLen);
+    DoDropFile(st);
+  end;
+  DragFinish(hDrop);
 end;
 
 end.

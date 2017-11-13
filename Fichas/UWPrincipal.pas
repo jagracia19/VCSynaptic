@@ -7,6 +7,7 @@ uses
   UWItems,
   UDMCompose,
   UWCompose,
+  pFIBDatabase,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, ExtCtrls, IniFiles;
 
@@ -211,8 +212,45 @@ end;
 
 procedure TWPrincipal.HandleEditVersion(Sender: TObject;
   const ItemName: string);
+var data    : TDMCompose;
+    aliasT  : TpFIBTransaction;
+    form    : TWCompose;
+    verOrder: Integer;
 begin
+  data := TDMCompose.Create(nil);
+  try
+    data.Database := DMPrincipal.Database;
+    aliasT := data.TransactionUpdate;
+    aliasT.StartTransaction;
+    try
+      verOrder := TItemVersionRelation.InsertItemVersion(data.Database, aliasT,
+          ItemName, Null, Null, Date, Null);
+      TItemLinkRelation.DuplicateVersion(data.Database, aliasT, ItemName,
+          verOrder-1, verOrder);
 
+      form := TWCompose.Create(nil);
+      try
+        form.Database := data.Database;
+        form.Transaction := aliasT;
+        form.Items := ItemCache;
+        form.Compose(ItemName, verOrder);
+        form.ShowModal;
+      finally
+        form.Free;
+      end;
+
+      Abort;
+    finally
+      try
+        aliasT.Commit;
+      except
+        data.TransactionUpdate.Rollback;
+        raise;
+      end;
+    end;
+  finally
+    data.Free;
+  end;
 end;
 
 procedure TWPrincipal.HideCompose;
@@ -246,7 +284,8 @@ begin
   DMCompose.Database := DMPrincipal.Database;
   DMCompose.Connect;
 
-  FormCompose.DataModule := DMCompose;
+  FormCompose.Database := DMCompose.Database;
+  FormCompose.Transaction := DMCompose.Transaction;
   FormCompose.Items := ItemCache;
   FormCompose.Compose(AItemName, AVersionOrder);
   FormCompose.Show;
