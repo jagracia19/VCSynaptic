@@ -244,6 +244,7 @@ end;
 function TWItems.AddItemVersion(const ItemName, Filename: string): Boolean;
 var data: TDMItemVersion;
     form: TWItemVersion;
+
 begin
   Result := False;
   data := TDMItemVersion.Create(nil);
@@ -258,16 +259,21 @@ begin
         form.Transaction := data.Transaction;
         form.DataSet := data.DataSet;
         form.DataSource := data.DataSource;
-        data.DataSet.Insert;
-        if Length(ItemName) <> 0 then
-          form.InitFromItemName(ItemName)
-        else if Length(Filename) <> 0 then
-          form.DropFileName(Filename);
-        if form.ShowModal = mrOk then
-        begin
-          data.DataSet.Post;
-        end
-        else data.DataSet.Cancel;
+        data.TransactionUpdate.StartTransaction;
+        try
+          data.DataSet.Insert;
+          if Length(ItemName) <> 0 then
+            form.InitFromItemName(ItemName)
+          else if Length(Filename) <> 0 then
+            form.DropFileName(Filename);
+          if form.ShowModal = mrOk then
+          begin
+            data.DataSet.Post;
+          end
+          else data.DataSet.Cancel;
+        finally
+          data.TransactionUpdate.Commit;
+        end;
       finally
         form.Free;
       end;

@@ -24,6 +24,7 @@ type
     EditVerHash: TDBEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure EditVerDateClick(Sender: TObject);
   private
     FDataSet: TDataSet;
     FDatabase: TpFIBDatabase;
@@ -49,7 +50,8 @@ implementation
 uses
   UHash,
   VCSynaptic.Database,
-  Language.Interf;
+  Language.Interf,
+  UWDate;
 
 {$R *.dfm}
 
@@ -66,6 +68,18 @@ begin
   InitFromItemName(itemName);
   DataSet.FieldByName('version_hash').AsString :=
       LowerCase(HashFileSHA1(Filename));
+end;
+
+procedure TWItemVersion.EditVerDateClick(Sender: TObject);
+var auxDate: TDate;
+begin
+  inherited;
+  auxDate := DataSet.FieldByName('version_date').AsDateTime;
+  if EditDate(auxDate) then
+  begin
+    DataSet.FieldByName('version_date').AsDateTime := auxDate;
+    SelectNext(ActiveControl as TWinControl, True, True);
+  end;
 end;
 
 procedure TWItemVersion.FormCreate(Sender: TObject);

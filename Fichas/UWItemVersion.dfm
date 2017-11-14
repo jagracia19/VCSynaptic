@@ -72,7 +72,8 @@ inherited WItemVersion: TWItemVersion
       Height = 21
       DataField = 'VERSION_DATE'
       DataSource = DataSource
-      TabOrder = 2
+      TabOrder = 3
+      OnClick = EditVerDateClick
     end
     object EditVerNumber: TDBEdit
       Left = 16
@@ -81,7 +82,7 @@ inherited WItemVersion: TWItemVersion
       Height = 21
       DataField = 'VERSION_NUMBER'
       DataSource = DataSource
-      TabOrder = 3
+      TabOrder = 2
     end
     object EditVerHash: TDBEdit
       Left = 16
