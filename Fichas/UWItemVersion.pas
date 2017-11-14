@@ -64,7 +64,8 @@ begin
   if Length(itemName) = 0 then
     raise Exception.Create(Format('Alias item %s not found', [itemAlias]));
   InitFromItemName(itemName);
-  DataSet.FieldByName('version_hash').AsString := HashFileSHA1(Filename);
+  DataSet.FieldByName('version_hash').AsString :=
+      LowerCase(HashFileSHA1(Filename));
 end;
 
 procedure TWItemVersion.FormCreate(Sender: TObject);
@@ -126,6 +127,8 @@ begin
     nameLen := DragQueryFile(hDrop, index, nil, 0) + 1;
     SetLength(st, nameLen);
     DragQueryFile(hDrop, index, Pointer(st), nameLen);
+    while EndsStr(#0, st) do
+      Delete(st, Length(st), 1);
     DropFilename(st);
   end;
   DragFinish(hDrop);
