@@ -96,9 +96,6 @@ object WItems: TWItems
     Height = 41
     Align = alTop
     TabOrder = 2
-    ExplicitLeft = 216
-    ExplicitTop = 272
-    ExplicitWidth = 185
     object PanelDropFile: TPanel
       Left = 1
       Top = 1
@@ -107,10 +104,6 @@ object WItems: TWItems
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
-      ExplicitLeft = 208
-      ExplicitTop = 0
-      ExplicitWidth = 185
-      ExplicitHeight = 41
     end
   end
   object ActionList: TActionList

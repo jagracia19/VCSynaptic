@@ -8,7 +8,7 @@ uses
   pFIBDataSet,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ActnList, Grids, DBGrids, ComCtrls, ToolWin, IniFiles, Menus,
-  ShellAPI, ExtCtrls;
+  ShellAPI, ExtCtrls, StrUtils;
 
 type
   TFileNameEvent = procedure (Sender: TObject; const Filename: string) of object;
@@ -76,6 +76,8 @@ type
     FDropFileControl: TDropFileControl;
     procedure HandleDropFile(Sender: TObject; const Filename: string);
     function AddItem: Boolean;
+    function AddItemVersion(const ItemName: string = '';
+      const Filename: string = ''): Boolean;
     procedure DoCompose(const ItemName: string); virtual;
     procedure DoEditVersion(const ItemName: string); virtual;
     procedure LoadConfig;
@@ -98,8 +100,11 @@ implementation
 
 uses
   VCLUtils.Interf,
+  VCSynaptic.Database,
   UDMImages,
-  UWItem;
+  UWItem,
+  UDMItemVersion,
+  UWItemVersion;
 
 {$R *.dfm}
 
@@ -210,7 +215,8 @@ end;
 procedure TWItems.ActionVersionsExecute(Sender: TObject);
 begin
   if DataSet.Active then
-    DoEditVersion(DataSet.FieldByName('name').AsString);
+    //DoEditVersion(DataSet.FieldByName('name').AsString);
+    AddItemVersion(DataSet.FieldByName('name').AsString, '');
 end;
 
 function TWItems.AddItem: Boolean;
@@ -232,6 +238,44 @@ begin
     else DataSet.Cancel;
   finally
     FreeAndNil(WItem);
+  end;
+end;
+
+function TWItems.AddItemVersion(const ItemName, Filename: string): Boolean;
+var data: TDMItemVersion;
+    form: TWItemVersion;
+begin
+  Result := False;
+  data := TDMItemVersion.Create(nil);
+  try
+    data.Database := DataModule.Database;
+    //data.SelectWhere := '(item_name=''' + ItemName + ''')';
+    data.Connect;
+    try
+      form := TWItemVersion.Create(nil);
+      try
+        form.Database := data.Database;
+        form.Transaction := data.Transaction;
+        form.DataSet := data.DataSet;
+        form.DataSource := data.DataSource;
+        data.DataSet.Insert;
+        if Length(ItemName) <> 0 then
+          form.InitFromItemName(ItemName)
+        else if Length(Filename) <> 0 then
+          form.DropFileName(Filename);
+        if form.ShowModal = mrOk then
+        begin
+          data.DataSet.Post;
+        end
+        else data.DataSet.Cancel;
+      finally
+        form.Free;
+      end;
+    finally
+      data.Disconnect;
+    end;
+  finally
+    data.Free;
   end;
 end;
 
@@ -279,8 +323,23 @@ begin
 end;
 
 procedure TWItems.HandleDropFile(Sender: TObject; const Filename: string);
+var itemAlias : string;
+    itemName  : string;
+    item : TItem;
 begin
-  Caption := Filename;
+  itemAlias := TItem.GetAliasFilename(Filename);
+  itemName := TItemRelation.GetNameFromAlias(DataModule.Database,
+      DataModule.Transaction, itemAlias);
+  if Length(itemName) = 0 then
+    raise Exception.Create(Format('Alias item %s not found', [itemAlias]));
+  try
+    item := TItemRelation.ReadItemName(DataModule.Database, DataModule.Transaction,
+      nil, itemName);
+    if item is TFileItem then
+      AddItemVersion('', Filename);
+  finally
+    item.Free;
+  end;
 end;
 
 procedure TWItems.LoadConfig;
@@ -351,6 +410,8 @@ begin
     nameLen:= DragQueryFile(hDrop, I, nil, 0) + 1;
     SetLength(st, nameLen);
     DragQueryFile(hDrop, I, Pointer(st), NameLen);
+    while EndsStr(#0, st) do
+      Delete(st, Length(st), 1);
     DoDropFile(st);
   end;
   DragFinish(hDrop);

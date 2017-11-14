@@ -43,10 +43,15 @@ type
   TItemRelation = class
   public
     class procedure Get(Query: TpFIBQuery; Item: TItem);
+    class function GetNameFromAlias(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const Alias: string): string;
     class function CreateItem(Query: TpFIBQuery; AOwner: TComponent): TItem;
-    class function ReadItem(Database: TpFIBDatabase;
+    class function ReadItemName(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; Owner: TComponent;
       const ItemName: string): TItem;
+    class function ReadItemAlias(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; Owner: TComponent;
+      const ItemAlias: string): TItem;
     class procedure SelectAllType(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; Items: TItemList; ItemType: TItemType);
   end;
@@ -216,7 +221,72 @@ begin
   end;
 end;
 
-class function TItemRelation.ReadItem(Database: TpFIBDatabase;
+class function TItemRelation.GetNameFromAlias(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const Alias: string): string;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text := 'select name from item where (alias=:alias)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('alias').AsString := Alias;
+      query.ExecQuery;
+      if not query.Eof then
+        Result := query.FieldByName('name').AsString
+      else Result := '';
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
+class function TItemRelation.ReadItemAlias(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; Owner: TComponent;
+  const ItemAlias: string): TItem;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text := 'select * from item where (alias=:alias)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('alias').AsString := ItemAlias;
+      query.ExecQuery;
+      if not query.Eof then
+      begin
+        Result := CreateItem(query, Owner);
+        if Result <> nil then
+          Get(query, Result);
+      end
+      else Result := nil;
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
+class function TItemRelation.ReadItemName(Database: TpFIBDatabase;
   Transaction: TpFIBTransaction; Owner: TComponent;
   const ItemName: string): TItem;
 var query   : TpFIBQuery;

@@ -3,7 +3,7 @@ unit VCSynaptic.Classes;
 interface
 
 uses
-  SysUtils, Classes, IOUtils, Generics.Collections;
+  SysUtils, Classes, IOUtils, Generics.Collections, StrUtils;
 
 ///  TItemType  ////////////////////////////////////////////////////////////////
 
@@ -60,6 +60,8 @@ type
     destructor Destroy; override;
     class function Make(AOwner: TComponent): TItem; virtual; abstract;
     class function ItemType: TItemType; virtual; abstract;
+    class function GetCamelCaseName(const AFilename: string): string;
+    class function GetAliasFilename(const AFilename: string): string;
     procedure InsertChild(AChild: TItem);
     procedure RemoveChild(AChild: TItem);
     procedure InsertReference(AItem: TItem);
@@ -122,6 +124,30 @@ type
   end;
 
 implementation
+
+////////////////////////////////////////////////////////////////////////////////
+
+function ExtractCamelExt(const FileName: string): string;
+const ExtPrefix = '.';
+var prefix: string;
+begin
+  Result := ExtractFileExt(FileName);
+  if Length(Result) <> 0 then
+  begin
+    // extract extension prefix
+    if StartsText(ExtPrefix, Result) then
+    begin
+      prefix := Copy(Result, 1, Length(ExtPrefix));
+      Delete(Result, 1, Length(ExtPrefix));
+    end
+    else prefix := '';
+
+    // convert to camel case format
+    if Length(Result) <> 0 then
+      Result := UpperCase(Copy(Result, 1, 1)) +
+                LowerCase(Copy(Result, 2, Length(Result)-1));
+  end;
+end;
 
 ///  TItemType  ////////////////////////////////////////////////////////////////
 
@@ -190,6 +216,16 @@ begin
   Result := RelativePath;
   if not TPath.IsDriveRooted(Result) and Assigned(Owner) then
     Result := IncludeTrailingPathDelimiter(Owner.AbsolutePath) + Result;
+end;
+
+class function TItem.GetAliasFilename(const AFilename: string): string;
+begin
+  Result := ExtractFileName(AFilename);
+end;
+
+class function TItem.GetCamelCaseName(const AFilename: string): string;
+begin
+  Result := ChangeFileExt(AFilename, '') + ExtractCamelExt(AFilename);
 end;
 
 function TItem.GetChildCount: Integer;

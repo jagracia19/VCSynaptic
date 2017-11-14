@@ -31,6 +31,9 @@ var
 
 implementation
 
+uses
+  FIBUtils.Interf;
+
 {$R *.dfm}
 
 { TDMItemVersion }
@@ -67,6 +70,22 @@ begin
       'select * from item_version ' +
       where +
       'order by item_name, version_order';
+
+  DataSet.SQLs.InsertSQL.Text :=
+      GetSQLInsertFromRelation(Database, Transaction, 'item_version',
+      'version_order');
+
+  DataSet.SQLs.UpdateSQL.Text :=
+      GetSQLUpdateFromRelation(Database, Transaction, 'item_version',
+      '(item_name=:old_item_name) and (version_order=:old_version_order)');
+
+  DataSet.SQLs.DeleteSQL.Text :=
+      'delete from item_version ' +
+      'where (item_name=:old_item_name) and (version_order=:old_version_order)';
+
+  DataSet.SQLs.RefreshSQL.Text :=
+      'select * from item_version ' +
+      'where (item_name=:old_item_name) and (version_order=:old_version_order)';
 end;
 
 procedure TDMItemVersion.SetDatabase(const Value: TpFIBDatabase);

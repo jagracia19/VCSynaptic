@@ -92,6 +92,9 @@
 			<DCCReference Include="Fichas\UWMasterEdit.pas">
 				<Form>WMasterEdit</Form>
 			</DCCReference>
+			<DCCReference Include="Fichas\UWItemVersion.pas">
+				<Form>WItemVersion</Form>
+			</DCCReference>
 			<DCCReference Include="Fichas\UWItem.pas">
 				<Form>WItem</Form>
 			</DCCReference>

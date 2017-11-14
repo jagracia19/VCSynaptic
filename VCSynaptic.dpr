@@ -20,6 +20,7 @@ uses
   UDMItemVersion in 'Datos\UDMItemVersion.pas' {DMItemVersion: TDataModule},
   UWDlgOkCancel in 'Fichas\UWDlgOkCancel.pas' {WDlgOkCancel},
   UWMasterEdit in 'Fichas\UWMasterEdit.pas' {WMasterEdit},
+  UWItemVersion in 'Fichas\UWItemVersion.pas' {WItemVersion},
   UWItem in 'Fichas\UWItem.pas' {WItem};
 
 {$R *.res}

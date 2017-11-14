@@ -44,36 +44,14 @@ uses
 
 {$R *.dfm}
 
-function ExtractCamelExt(const FileName: string): string;
-const ExtPrefix = '.';
-var prefix: string;
-begin
-  Result := ExtractFileExt(FileName);
-  if Length(Result) <> 0 then
-  begin
-    // extract extension prefix
-    if StartsText(ExtPrefix, Result) then
-    begin
-      prefix := Copy(Result, 1, Length(ExtPrefix));
-      Delete(Result, 1, Length(ExtPrefix));
-    end
-    else prefix := '';
-
-    // convert to camel case format
-    if Length(Result) <> 0 then
-      Result := UpperCase(Copy(Result, 1, 1)) +
-                LowerCase(Copy(Result, 2, Length(Result)-1));
-  end;
-end;
-
 { TWItem }
 
 procedure TWItem.DropFileName(const AFilename: string);
 var auxFilename: string;
 begin
   auxFilename := ExtractFileName(AFileName);
-  DataSet.FieldByName('NAME').AsString := ChangeFileExt(auxFilename, '') +
-      ExtractCamelExt(auxFilename);
+  DataSet.FieldByName('NAME').AsString :=
+      TItem.GetCamelCaseName(auxFilename);
   DataSet.FieldByName('ALIAS').AsString := auxFilename;
   SelectComboBoxType(itFile);
   DataSet.FieldByName('PATH').AsString := AFileName;
