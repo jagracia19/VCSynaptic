@@ -55,6 +55,7 @@ type
     FInMouseClick: Boolean;
     FDatabase: TpFIBDatabase;
     FTransaction: TpFIBTransaction;
+    FTransactionUpdate: TpFIBTransaction;
     procedure InitGrid;
     procedure InitItemTypes;
     procedure UpdateItemTree;
@@ -66,6 +67,7 @@ type
     procedure SetItemTypes(const Value: TItemTypeSet);
     procedure SetDatabase(const Value: TpFIBDatabase);
     procedure SetTransaction(const Value: TpFIBTransaction);
+    procedure SetTransactionUpdate(const Value: TpFIBTransaction);
   protected
     property Item: TItem read FItem write FItem;
     property Root: TItemNode read FRoot write FRoot;
@@ -75,6 +77,7 @@ type
     procedure Compose(const AItemName: string; AVersionOrder: Integer);
     property Database: TpFIBDatabase read FDatabase write SetDatabase;
     property Transaction: TpFIBTransaction read FTransaction write SetTransaction;
+    property TransactionUpdate: TpFIBTransaction read FTransactionUpdate write SetTransactionUpdate;
     //property DataModule: TDMCompose read FDataModule write SetDataModule;
     property Items: TItemList read FItems write SetItems;
     property ItemTypes: TItemTypeSet read FItemTypes write SetItemTypes;
@@ -87,6 +90,7 @@ implementation
 
 uses
   UGrid,
+  VCSynaptic.Functions,
   VCSynaptic.Database,
   UDMImages;
 
@@ -322,12 +326,16 @@ begin
 end;
 
 procedure TWCompose.GridClick(Sender: TObject);
-var where   : TPoint;
-    col, row: Integer;
-    btnRect : TRect;
-    node    : TItemNode;
-    bVisible: Boolean;
-    I       : Integer;
+var where     : TPoint;
+    col, row  : Integer;
+    btnRect   : TRect;
+    node      : TItemNode;
+    parentNode: TItemNode;
+    item      : TItem;
+    ownerItem : TItem;
+    bVisible  : Boolean;
+    I         : Integer;
+    verOrder  : Integer;
 begin
   // check to avoid recursion
   if not FInMouseClick then
@@ -340,6 +348,29 @@ begin
       Grid.MouseToCell(where.x, where.y, col, row);
       if row >= Grid.FixedRows then
       begin
+        node := GetRowItemNode(row);
+        if node <> nil then
+        begin
+          parentNode := node.Parent;
+          if parentNode <> nil then
+          begin
+            item := node.Item;
+            ownerItem := parentNode.Item;
+            if (item <> nil) and (ownerItem <> nil) then
+            begin
+              if col = ColVerOrd then
+              begin
+                verOrder := SelectItemVersion(Database, item.Name);
+                if verOrder <> 0 then
+                  TItemLinkRelation.UpdateChildVersion(
+                      Database, TransactionUpdate,
+                      ownerItem.Name, OwnerItem.Version.Order,
+                      item.Name, item.Version.Order, verOrder);
+              end;
+            end;
+          end;
+        end;
+
         // get buttonrect for clicked cell
         btnRect := GetGridBtnRect(Grid, col, row, False, taLeftJustify);
         InflateRect(btnrect, 2, 2);  //Allow 2px 'error-range'...
@@ -755,6 +786,11 @@ end;
 procedure TWCompose.SetTransaction(const Value: TpFIBTransaction);
 begin
   FTransaction := Value;
+end;
+
+procedure TWCompose.SetTransactionUpdate(const Value: TpFIBTransaction);
+begin
+  FTransactionUpdate := Value;
 end;
 
 procedure TWCompose.UpdateGrid(ARowCount: Integer);

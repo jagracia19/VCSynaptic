@@ -76,8 +76,8 @@ type
     FDropFileControl: TDropFileControl;
     procedure HandleDropFile(Sender: TObject; const Filename: string);
     function AddItem: Boolean;
-    function AddItemVersion(const ItemName: string = '';
-      const Filename: string = ''): Boolean;
+    function AddItemVersion(const ItemName: string; const Filename: string;
+      out NewItemName: string; out NewVersionOrder: Integer): Boolean;
     procedure DoCompose(const ItemName: string); virtual;
     procedure DoEditVersion(const ItemName: string); virtual;
     procedure LoadConfig;
@@ -213,10 +213,25 @@ begin
 end;
 
 procedure TWItems.ActionVersionsExecute(Sender: TObject);
+var itemName    : string;
+    newVerOrder : Integer;
+    oldVerOrder : Integer;
 begin
   if DataSet.Active then
+  begin
     //DoEditVersion(DataSet.FieldByName('name').AsString);
-    AddItemVersion(DataSet.FieldByName('name').AsString, '');
+    if AddItemVersion(DataSet.FieldByName('name').AsString, '', itemName,
+        newVerOrder)
+    then
+    begin
+      // clone links from previous version
+      oldVerOrder := TItemVersionRelation.GetPrevOrder(DataModule.Database,
+          DataModule.Transaction, itemName, newVerOrder);
+      if oldVerOrder <> 0 then
+        TItemLinkRelation.DuplicateVersion(DataModule.Database,
+            DataModule.TransactionUpdate, itemName, oldVerOrder, newVerOrder);
+    end;
+  end;
 end;
 
 function TWItems.AddItem: Boolean;
@@ -241,7 +256,8 @@ begin
   end;
 end;
 
-function TWItems.AddItemVersion(const ItemName, Filename: string): Boolean;
+function TWItems.AddItemVersion(const ItemName, Filename: string;
+  out NewItemName: string; out NewVersionOrder: Integer): Boolean;
 var data: TDMItemVersion;
     form: TWItemVersion;
 
@@ -269,6 +285,9 @@ begin
           if form.ShowModal = mrOk then
           begin
             data.DataSet.Post;
+            NewItemName := data.DataSet.FieldByName('item_name').AsString;
+            NewVersionOrder := data.DataSet.FieldByName('version_order').AsInteger;
+            Result := True;
           end
           else data.DataSet.Cancel;
         finally
@@ -329,20 +348,22 @@ begin
 end;
 
 procedure TWItems.HandleDropFile(Sender: TObject; const Filename: string);
-var itemAlias : string;
-    itemName  : string;
-    item : TItem;
+var itemAlias   : string;
+    itemName    : string;
+    item        : TItem;
+    newItemName : string;
+    verOrder    : Integer;
 begin
   itemAlias := TItem.GetAliasFilename(Filename);
   itemName := TItemRelation.GetNameFromAlias(DataModule.Database,
       DataModule.Transaction, itemAlias);
   if Length(itemName) = 0 then
     raise Exception.Create(Format('Alias item %s not found', [itemAlias]));
-  try
-    item := TItemRelation.ReadItemName(DataModule.Database, DataModule.Transaction,
+  item := TItemRelation.ReadItemName(DataModule.Database, DataModule.Transaction,
       nil, itemName);
+  try
     if item is TFileItem then
-      AddItemVersion('', Filename);
+      AddItemVersion('', Filename, newItemName, verOrder);
   finally
     item.Free;
   end;

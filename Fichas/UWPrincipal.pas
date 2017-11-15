@@ -52,6 +52,7 @@ uses
   VCLUtils.Interf,
   VCSynaptic.Classes,
   VCSynaptic.Database,
+  VCSynaptic.Functions,
   UCache,
   UDMPrincipal,
   UDMItemVersion,
@@ -99,36 +100,6 @@ begin
     end;
   finally
     F.Free;
-  end;
-end;
-
-////////////////////////////////////////////////////////////////////////////////
-
-function SelectItemVersion(const ItemName: string): Integer;
-var data: TDMItemVersion;
-    form: TWMaster;
-begin
-  Application.CreateForm(TDMItemVersion, data);
-  try
-    data.Database := DMPrincipal.Database;
-    data.SelectWhere := '(item_name=''' + ItemName + ''')';
-    data.Connect;
-    try
-      Application.CreateForm(TWMaster, form);
-      try
-        form.DataSet := data.DataSet;
-        form.DataSource := data.DataSource;
-        if form.ShowModal = mrOk then
-          Result := data.DataSet.FieldByName('version_order').AsInteger
-        else Result := 0;
-      finally
-        form.Free;
-      end;
-    finally
-      data.Disconnect;
-    end;
-  finally
-    data.Free;
   end;
 end;
 
@@ -201,7 +172,7 @@ end;
 procedure TWPrincipal.HandleCompose(Sender: TObject; const ItemName: string);
 var versionOrder: Integer;
 begin
-  versionOrder := SelectItemVersion(ItemName);
+  versionOrder := SelectItemVersion(DMPrincipal.Database, ItemName);
   if versionOrder <> 0 then
   begin
     HideCompose;
@@ -286,6 +257,7 @@ begin
 
   FormCompose.Database := DMCompose.Database;
   FormCompose.Transaction := DMCompose.Transaction;
+  FormCompose.TransactionUpdate := DMCompose.TransactionUpdate;
   FormCompose.Items := ItemCache;
   FormCompose.Compose(AItemName, AVersionOrder);
   FormCompose.Show;

@@ -66,6 +66,9 @@ type
     class procedure Get(Query: TpFIBQuery; ItemVersion: TItemVersion);
     class function GetNextOrder(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; const ItemName: string): Integer;
+    class function GetPrevOrder(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const ItemName: string;
+      VersionOrder: Integer): Integer;
     class function ReadItemVersion(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; ItemVersion: TItemVersion;
       const ItemName: string; VersionOrder: Integer): Boolean;
@@ -79,6 +82,10 @@ type
     class procedure DuplicateVersion(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; const ItemName: string; OldVersionOrder,
       NewVersionOrder: Integer);
+    class procedure UpdateChildVersion(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const OwnerItemName: string;
+      OwnerVersionOrder: Integer; const ChildItemName: string;
+      OldChildVersionOrder, NewChildVersionOrder: Integer);
   end;
 
 implementation
@@ -404,6 +411,41 @@ begin
   end;
 end;
 
+class function TItemVersionRelation.GetPrevOrder(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const ItemName: string;
+  VersionOrder: Integer): Integer;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text :=
+        'select max(version_order) version_order ' +
+        'from item_version ' +
+        'where (item_name=:item_name) and (version_order<>:version_order)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('item_name').AsString := ItemName;
+      query.ParamByName('version_order').AsInteger := VersionOrder;
+      query.ExecQuery;
+      if not query.Eof then
+        Result := query.FieldByName('version_order').AsInteger
+      else Result := 0;
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
 class function TItemVersionRelation.GetSQLInsert(Database: TpFIBDatabase;
   Transaction: TpFIBTransaction): string;
 begin
@@ -516,6 +558,46 @@ begin
       query.ParamByName('owner_item_name').AsString := ItemName;
       query.ParamByName('new_owner_version_order').AsInteger := NewVersionOrder;
       query.ParamByName('old_owner_version_order').AsInteger := OldVersionOrder;
+      query.ExecQuery;
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
+class procedure TItemLinkRelation.UpdateChildVersion(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const OwnerItemName: string;
+  OwnerVersionOrder: Integer; const ChildItemName: string; OldChildVersionOrder,
+  NewChildVersionOrder: Integer);
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text :=
+        'update item_link ' +
+        'set child_version_order=:new_child_version_order ' +
+        'where ' +
+        ' (owner_item_name=:owner_item_name) and ' +
+        ' (owner_version_order=:owner_version_order) and ' +
+        ' (child_item_name=:child_item_name) and ' +
+        ' (child_version_order=:old_child_version_order)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('new_child_version_order').AsInteger := NewChildVersionOrder;
+      query.ParamByName('owner_item_name').AsString := OwnerItemName;
+      query.ParamByName('owner_version_order').AsInteger := OwnerVersionOrder;
+      query.ParamByName('child_item_name').AsString := ChildItemName;
+      query.ParamByName('old_child_version_order').AsInteger := OldChildVersionOrder;
       query.ExecQuery;
       query.Close;
       if fCommit then Transaction.Commit;

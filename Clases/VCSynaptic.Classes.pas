@@ -240,7 +240,7 @@ end;
 
 function TItem.GetItemOwner: TItem;
 begin
-  Result := TItem(Owner);
+  Result := TItem(inherited Owner);
 end;
 
 function TItem.GetReferenceCount: Integer;
