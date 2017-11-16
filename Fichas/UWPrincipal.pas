@@ -9,14 +9,20 @@ uses
   UWCompose,
   pFIBDatabase,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ComCtrls, ExtCtrls, IniFiles;
+  Dialogs, StdCtrls, ComCtrls, ExtCtrls, IniFiles, Menus, ActnList;
 
 type
   TWPrincipal = class(TForm)
     PanelDock: TPanel;
     PageControlDock: TPageControl;
+    MainMenu1: TMainMenu;
+    MIMaestros: TMenuItem;
+    MIVersiones: TMenuItem;
+    ActionList1: TActionList;
+    ActionVerVersiones: TAction;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure ActionVerVersionesExecute(Sender: TObject);
   private
     FDMItems: TDMItems;
     FFormItems: TWItems;
@@ -106,6 +112,11 @@ end;
 ////////////////////////////////////////////////////////////////////////////////
 
 { TWPrincipal }
+
+procedure TWPrincipal.ActionVerVersionesExecute(Sender: TObject);
+begin
+  ShowItemVersion(DMPrincipal.Database);
+end;
 
 function TWPrincipal.FindTabSheet(const ACaption: string): Integer;
 begin

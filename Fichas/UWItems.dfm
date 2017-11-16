@@ -2,7 +2,7 @@ object WItems: TWItems
   Left = 0
   Top = 0
   Caption = 'Items'
-  ClientHeight = 546
+  ClientHeight = 574
   ClientWidth = 600
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -74,9 +74,9 @@ object WItems: TWItems
   end
   object DBGrid: TDBGrid
     Left = 0
-    Top = 79
+    Top = 73
     Width = 600
-    Height = 467
+    Height = 501
     Align = alClient
     DefaultDrawing = False
     PopupMenu = PopupMenuGrid
@@ -89,22 +89,14 @@ object WItems: TWItems
     TitleFont.Style = []
     OnDrawColumnCell = DBGridDrawColumnCell
   end
-  object Panel1: TPanel
+  object PanelDropFile: TPanel
     Left = 0
     Top = 38
     Width = 600
-    Height = 41
+    Height = 35
     Align = alTop
+    BevelOuter = bvNone
     TabOrder = 2
-    object PanelDropFile: TPanel
-      Left = 1
-      Top = 1
-      Width = 598
-      Height = 39
-      Align = alClient
-      BevelOuter = bvNone
-      TabOrder = 0
-    end
   end
   object ActionList: TActionList
     Images = DMImages.ImageListToolbar

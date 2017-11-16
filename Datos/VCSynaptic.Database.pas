@@ -4,7 +4,7 @@ interface
 
 uses
   VCSynaptic.Classes,
-  pFIBDatabase, pFIBQuery,
+  pFIBDatabase, pFIBQuery, pFIBStoredProc,
   SysUtils, Classes, Variants;
 
 type
@@ -38,6 +38,9 @@ type
       VersionOrder: Integer): TItem;
     class procedure ReadItemChildren(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; Items: TItemList; Item: TItem);
+    class procedure DuplicateItemLinkVersion(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const ItemName: string; OldVersionOrder,
+      NewVersionOrder: Integer; LastChildVersion: Boolean);
   end;
 
   TItemRelation = class
@@ -116,6 +119,39 @@ begin
 end;
 
 { TDatabaseRelation }
+
+class procedure TDatabaseRelation.DuplicateItemLinkVersion(
+  Database: TpFIBDatabase; Transaction: TpFIBTransaction;
+  const ItemName: string; OldVersionOrder, NewVersionOrder: Integer;
+  LastChildVersion: Boolean);
+var storedProc: TpFIBStoredProc;
+    fCommit   : Boolean;
+begin
+  storedProc := TpFIBStoredProc.Create(nil);
+  try
+    storedProc.Database := Database;
+    storedProc.Transaction := Transaction;
+    storedProc.StoredProcName := 'DUPLICATE_ITEM_LINK_VERSION';
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      //query.ParamByName('owner_item_name').AsString := Item.Name;
+      //query.ParamByName('owner_version_order').AsInteger := Item.Version.Order;
+      storedProc.ParamByName('item_name').AsString := ItemName;
+      storedProc.ParamByName('old_version_order').AsInteger := OldVersionOrder;
+      storedProc.ParamByName('new_version_order').AsInteger := NewVersionOrder;
+      storedProc.ParamByName('last_child_version').AsBoolean := LastChildVersion;
+      storedProc.ExecProc;
+      storedProc.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    storedProc.Free;
+  end;
+end;
 
 class procedure TDatabaseRelation.ReadItemChildren(Database: TpFIBDatabase;
   Transaction: TpFIBTransaction; Items: TItemList; Item: TItem);
@@ -535,39 +571,41 @@ end;
 class procedure TItemLinkRelation.DuplicateVersion(Database: TpFIBDatabase;
   Transaction: TpFIBTransaction; const ItemName: string; OldVersionOrder,
   NewVersionOrder: Integer);
-var query   : TpFIBQuery;
-    fCommit : Boolean;
+//var query   : TpFIBQuery;
+//    fCommit : Boolean;
 begin
-  query := TpFIBQuery.Create(nil);
-  try
-    query.Database := Database;
-    query.Transaction := Transaction;
-    query.SQL.Text :=
-        'insert into item_link (owner_item_name, owner_version_order, ' +
-        ' child_item_name, child_version_order) ' +
-        'select owner_item_name, :new_owner_version_order, ' +
-        ' child_item_name, child_version_order ' +
-        'from item_link ' +
-        'where ' +
-        '	(owner_item_name like :owner_item_name) and ' +
-        '	(owner_version_order=:old_owner_version_order)';
-
-    fCommit := not Transaction.InTransaction;
-    try
-      if fCommit then Transaction.StartTransaction;
-      query.ParamByName('owner_item_name').AsString := ItemName;
-      query.ParamByName('new_owner_version_order').AsInteger := NewVersionOrder;
-      query.ParamByName('old_owner_version_order').AsInteger := OldVersionOrder;
-      query.ExecQuery;
-      query.Close;
-      if fCommit then Transaction.Commit;
-    except
-      if fCommit and Transaction.InTransaction then
-        Transaction.Rollback;
-    end;
-  finally
-    query.Free;
-  end;
+//  query := TpFIBQuery.Create(nil);
+//  try
+//    query.Database := Database;
+//    query.Transaction := Transaction;
+//    query.SQL.Text :=
+//        'insert into item_link (owner_item_name, owner_version_order, ' +
+//        ' child_item_name, child_version_order) ' +
+//        'select owner_item_name, :new_owner_version_order, ' +
+//        ' child_item_name, child_version_order ' +
+//        'from item_link ' +
+//        'where ' +
+//        '	(owner_item_name like :owner_item_name) and ' +
+//        '	(owner_version_order=:old_owner_version_order)';
+//
+//    fCommit := not Transaction.InTransaction;
+//    try
+//      if fCommit then Transaction.StartTransaction;
+//      query.ParamByName('owner_item_name').AsString := ItemName;
+//      query.ParamByName('new_owner_version_order').AsInteger := NewVersionOrder;
+//      query.ParamByName('old_owner_version_order').AsInteger := OldVersionOrder;
+//      query.ExecQuery;
+//      query.Close;
+//      if fCommit then Transaction.Commit;
+//    except
+//      if fCommit and Transaction.InTransaction then
+//        Transaction.Rollback;
+//    end;
+//  finally
+//    query.Free;
+//  end;
+  TDatabaseRelation.DuplicateItemLinkVersion(Database, Transaction,
+      ItemName, OldVersionOrder, NewVersionOrder, True);
 end;
 
 class procedure TItemLinkRelation.UpdateChildVersion(Database: TpFIBDatabase;

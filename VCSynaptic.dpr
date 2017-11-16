@@ -23,7 +23,9 @@ uses
   UWItemVersion in 'Fichas\UWItemVersion.pas' {WItemVersion},
   UWItem in 'Fichas\UWItem.pas' {WItem},
   UWDate in 'Fichas\UWDate.pas' {WDate},
-  VCSynaptic.Functions in 'VCSynaptic.Functions.pas';
+  VCSynaptic.Functions in 'VCSynaptic.Functions.pas',
+  UDropFileControl in 'UDropFileControl.pas',
+  UWMasterItemVersion in 'Fichas\UWMasterItemVersion.pas' {WMasterItemVersion};
 
 {$R *.res}
 

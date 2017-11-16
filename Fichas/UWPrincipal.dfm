@@ -10,6 +10,7 @@ object WPrincipal: TWPrincipal
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu1
   OldCreateOrder = False
   OnClose = FormClose
   OnShow = FormShow
@@ -32,6 +33,24 @@ object WPrincipal: TWPrincipal
       DockSite = True
       Style = tsFlatButtons
       TabOrder = 0
+    end
+  end
+  object MainMenu1: TMainMenu
+    Left = 176
+    Top = 80
+    object MIMaestros: TMenuItem
+      Caption = 'Maestros'
+      object MIVersiones: TMenuItem
+        Action = ActionVerVersiones
+      end
+    end
+  end
+  object ActionList1: TActionList
+    Left = 408
+    Top = 80
+    object ActionVerVersiones: TAction
+      Caption = 'Versiones'
+      OnExecute = ActionVerVersionesExecute
     end
   end
 end
