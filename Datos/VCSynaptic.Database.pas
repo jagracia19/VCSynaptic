@@ -75,6 +75,9 @@ type
     class function ReadItemVersion(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; ItemVersion: TItemVersion;
       const ItemName: string; VersionOrder: Integer): Boolean;
+    class function ReadItemHash(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; var ItemName: string;
+      ItemVersion: TItemVersion; const VersionHash: string): Boolean;
     class function InsertItemVersion(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; const ItemName: string; VersionOrder,
       VersionNumber, VersionDate, VersionHash: Variant): Integer;
@@ -529,6 +532,43 @@ begin
   end;
 end;
 
+class function TItemVersionRelation.ReadItemHash(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; var ItemName: string;
+  ItemVersion: TItemVersion; const VersionHash: string): Boolean;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text :=
+        'select * from item_version ' +
+        'where (version_hash=:version_hash)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('version_hash').AsString := VersionHash;
+      query.ExecQuery;
+      if not query.Eof then
+      begin
+        ItemName := query.FieldByName('item_name').AsString;
+        Get(query, ItemVersion);
+        Result := True;
+      end
+      else Result := False;
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
 class function TItemVersionRelation.ReadItemVersion(Database: TpFIBDatabase;
   Transaction: TpFIBTransaction; ItemVersion: TItemVersion;
   const ItemName: string; VersionOrder: Integer): Boolean;
@@ -541,7 +581,7 @@ begin
     query.Transaction := Transaction;
     query.SQL.Text :=
         'select * from item_version ' +
-        'where (item_name=:item_name= and (version_order=:version_order)';
+        'where (item_name=:item_name) and (version_order=:version_order)';
 
     fCommit := not Transaction.InTransaction;
     try

@@ -24,12 +24,14 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<UsePackages>true</UsePackages>
+			<DCC_UsePackage>FIBUtils</DCC_UsePackage>
+			<DCC_UnitSearchPath>$(BDS)\Source\DUnit\src;..\$(Config)\$(Platform);$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_Define>_CONSOLE_TESTRUNNER;$(DCC_Define)</DCC_Define>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_DcuOutput>.\$(Config)\$(Platform)</DCC_DcuOutput>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
-			<DCC_ExeOutput>.\$(Config)\$(Platform)</DCC_ExeOutput>
+			<DCC_ExeOutput>..\$(Config)\$(Platform)</DCC_ExeOutput>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
@@ -37,6 +39,7 @@
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_ExeOutput>..\$(Config)\$(Platform)</DCC_ExeOutput>
 			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
 			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
@@ -48,6 +51,14 @@
 			</DelphiCompile>
 			<DCCReference Include="TestUHash.pas"/>
 			<DCCReference Include="..\UHash.pas"/>
+			<DCCReference Include="TestUFinder.pas"/>
+			<DCCReference Include="..\Clases\VCSynaptic.Classes.pas"/>
+			<DCCReference Include="..\Datos\VCSynaptic.Database.pas"/>
+			<DCCReference Include="..\UFinder.pas"/>
+			<DCCReference Include="Test.DataModule.pas">
+				<Form>DataModuleTest</Form>
+				<DesignClass>TDataModule</DesignClass>
+			</DCCReference>
 			<BuildConfiguration Include="Release">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>
@@ -95,10 +106,8 @@
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
 					<Excluded_Packages>
-						<Excluded_Packages Name="C:\Windows\system32\vclZipForged15.bpl">ZipForge Package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\RaveReports\Lib\dclRave.bpl">Rave Reports 9.0 BE Package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDSBIN)\dcloffice2k150.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-						<Excluded_Packages Name="$(BDSBIN)\dclofficexp150.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="C:\DelphiXE\FastReports\FastReport 5\LibD15\dclfsibx15.bpl">FastScript 1.9 IBX Components</Excluded_Packages>
+						<Excluded_Packages Name="C:\DelphiXE\FastReports\FastReport 5\LibD15\dclfrxibx15.bpl">FastReport 5.0 IBX Components</Excluded_Packages>
 					</Excluded_Packages>
 					<Source>
 						<Source Name="MainSource">VCSynapticTests.dpr</Source>
@@ -111,6 +120,7 @@
 					<TestFramework>DUnit / Delphi Win32</TestFramework>
 					<TestRunner>GUI</TestRunner>
 					<SourceProjectName>C:\VCS2\Utils\VCSynaptic\VCSynaptic.dproj</SourceProjectName>
+					<TestProjectName/>
 				</UnitTesting>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>

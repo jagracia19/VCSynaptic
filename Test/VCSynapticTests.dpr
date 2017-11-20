@@ -20,7 +20,12 @@ uses
   GUITestRunner,
   TextTestRunner,
   TestUHash in 'TestUHash.pas',
-  UHash in '..\UHash.pas';
+  UHash in '..\UHash.pas',
+  TestUFinder in 'TestUFinder.pas',
+  VCSynaptic.Classes in '..\Clases\VCSynaptic.Classes.pas',
+  VCSynaptic.Database in '..\Datos\VCSynaptic.Database.pas',
+  UFinder in '..\UFinder.pas',
+  Test.DataModule in 'Test.DataModule.pas' {DataModuleTest: TDataModule};
 
 {$R *.RES}
 
