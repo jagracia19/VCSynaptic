@@ -1,15 +1,15 @@
 inherited WItem: TWItem
   Caption = 'Item'
-  ClientHeight = 236
+  ClientHeight = 312
   ClientWidth = 258
   OnDestroy = FormDestroy
   ExplicitWidth = 274
-  ExplicitHeight = 274
+  ExplicitHeight = 350
   PixelsPerInch = 96
   TextHeight = 13
   inherited PanelControls: TPanel
     Width = 258
-    Height = 209
+    Height = 285
     ExplicitWidth = 258
     ExplicitHeight = 209
     object LabelName: TLabel
@@ -39,6 +39,13 @@ inherited WItem: TWItem
       Width = 22
       Height = 13
       Caption = 'Path'
+    end
+    object LabelOwner: TLabel
+      Left = 16
+      Top = 197
+      Width = 32
+      Height = 13
+      Caption = 'Owner'
     end
     object EditName: TDBEdit
       Left = 16
@@ -82,9 +89,18 @@ inherited WItem: TWItem
         'MODULE')
       TabOrder = 2
     end
+    object EditOwner: TDBEdit
+      Left = 16
+      Top = 216
+      Width = 161
+      Height = 21
+      DataField = 'OWNER'
+      DataSource = DataSource
+      TabOrder = 4
+    end
   end
   inherited PanelTools: TPanel
-    Top = 209
+    Top = 285
     Width = 258
     ExplicitTop = 209
     ExplicitWidth = 258

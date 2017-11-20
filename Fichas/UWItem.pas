@@ -19,6 +19,8 @@ type
     EditPath: TDBEdit;
     DataSource: TDataSource;
     ComboBoxType: TDBComboBox;
+    LabelOwner: TLabel;
+    EditOwner: TDBEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
@@ -55,6 +57,7 @@ begin
   DataSet.FieldByName('ALIAS').AsString := auxFilename;
   SelectComboBoxType(itFile);
   DataSet.FieldByName('PATH').AsString := AFileName;
+  DataSet.FieldByName('OWNER').Clear;
 end;
 
 procedure TWItem.FormCreate(Sender: TObject);

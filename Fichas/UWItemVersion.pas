@@ -55,7 +55,7 @@ uses
 
 {$R *.dfm}
 
-{ TWItem }
+{ TWItemVersion }
 
 procedure TWItemVersion.DropFileName(const Filename: string);
 var itemAlias : string;
