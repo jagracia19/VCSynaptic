@@ -36,6 +36,7 @@ type
     procedure ResizeGrid;
     function GetColFinderNode(ACol: Integer;
       ALeaves: TFinderNodeList): TFinderNode;
+    function GetRowFilename(ARow: Integer): string;
     function GetRowFinderItem(ARow: Integer): TFinderItem;
     procedure HandleDropFiles(Sender: TObject; const Filename: string);
     function GetFinder: TFinder;
@@ -81,7 +82,7 @@ end;
 procedure TWFinder.ActionRefreshExecute(Sender: TObject);
 begin
   UpdateFinder;
-  UpdateGrid(Finder.FinderItems.Count, Finder.UnionLeaves.Count);
+  UpdateGrid(Files.Count, Finder.UnionLeaves.Count);
   ResizeGrid;
 end;
 
@@ -134,15 +135,24 @@ begin
   Result := FFinder;
 end;
 
-function TWFinder.GetRowFinderItem(ARow: Integer): TFinderItem;
+function TWFinder.GetRowFilename(ARow: Integer): string;
 begin
-  Result := nil;
+  Result := '';
   if ARow >= GRID_FIXED_ROWS then
   begin
     ARow := ARow - GRID_FIXED_ROWS;
-    if (Finder <> nil) and (ARow < Finder.FinderItems.Count) then
-      Result := Finder.FinderItems[ARow];
+    if (Files <> nil) and (ARow < Files.Count) then
+      Result := Files[ARow];
   end;
+end;
+
+function TWFinder.GetRowFinderItem(ARow: Integer): TFinderItem;
+var filename: string;
+begin
+  Result := nil;
+  filename := GetRowFilename(ARow);
+  if (Length(filename) <> 0) and (Finder <> nil) then
+    Result := Finder.FinderItems.FindFilename(filename);
 end;
 
 procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
@@ -172,24 +182,25 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
   end;
 
   function GetTextData(ACol, ARow: integer): string;
-  var finderItem: TFinderItem;
+  var filename  : string;
+      finderItem: TFinderItem;
   begin
     Result := '';
     if ARow >= GRID_FIXED_ROWS then
     begin
-      finderItem := GetRowFinderItem(ARow);
-      if finderItem <> nil then
+      filename := GetRowFilename(ARow);
+      if ACol < GRID_FIXED_COLS then
       begin
-        if ACol < GRID_FIXED_COLS then
-        begin
-          case ACol of
-            GRID_COL_FILE : Result := ExtractFileName(finderItem.Filename);
-            GRID_COL_VER  :
-              if finderItem.Root <> nil then
-                Result := IntToStr(finderItem.Root.VersionOrder);
-          end
+        case ACol of
+          GRID_COL_FILE : Result := ExtractFileName(filename);
+          GRID_COL_VER  :
+          begin
+            finderItem := GetRowFinderItem(ARow);
+            if (finderItem <> nil) and (finderItem.Root <> nil) then
+              Result := IntToStr(finderItem.Root.VersionOrder);
+          end;
         end
-      end;
+      end
     end;
   end;
 
@@ -240,7 +251,8 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
             end;
           end;
         end;
-      end;
+      end
+      else Result := clBtnFace;
     end;
   end;
 

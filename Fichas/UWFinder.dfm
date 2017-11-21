@@ -24,7 +24,6 @@ object WFinder: TWFinder
     Align = alTop
     BevelOuter = bvNone
     TabOrder = 0
-    ExplicitWidth = 600
   end
   object ToolBar1: TToolBar
     Left = 0
@@ -36,7 +35,6 @@ object WFinder: TWFinder
     Caption = 'ToolBar1'
     Images = DMImages.ImageListToolbar
     TabOrder = 1
-    ExplicitTop = -29
     object ToolButtonRefresh: TToolButton
       Left = 0
       Top = 0
@@ -64,9 +62,6 @@ object WFinder: TWFinder
     ParentDoubleBuffered = False
     TabOrder = 2
     OnDrawCell = GridDrawCell
-    ExplicitTop = -38
-    ExplicitWidth = 628
-    ExplicitHeight = 614
   end
   object ActionList: TActionList
     Images = DMImages.ImageListToolbar
