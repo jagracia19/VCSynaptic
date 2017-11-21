@@ -57,11 +57,28 @@ type
     function FindFilename(const AFilename: string): TFinderItem;
   end;
 
+  TFinderNodeCollection = class
+  private
+    FInterLeaves: TFinderNodeList;
+    FUnionLeaves: TFinderNodeList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    property InterLeaves: TFinderNodeList read FInterLeaves;
+    property UnionLeaves: TFinderNodeList read FUnionLeaves;
+  end;
+
+  TDicOwnerFinderNodeCol = class(TObjectDictionary<string,TFinderNodeCollection>)
+  end;
+
   TFinder = class
   private
     FFinderItems: TFinderItemList;
     FInterLeaves: TFinderNodeList;
     FUnionLeaves: TFinderNodeList;
+    FDicLeaves: TDicOwnerFinderNodeCol;
+    function GetInterLeaveList(OwnerName: string): TFinderNodeList;
+    function GetUnionLeaveList(OwnerName: string): TFinderNodeList;
   protected
     class procedure FindOwners(ADatabase: TpFIBDatabase;
       ATransaction: TpFIBTransaction; AFinderNode: TFinderNode;
@@ -72,6 +89,7 @@ type
       ALeaves: TFinderNodeList);
     class procedure JoinLeaves(AFinderItems: TFinderItemList;
       ALeaves: TFinderNodeList);
+    property DicLeaves: TDicOwnerFinderNodeCol read FDicLeaves;
   public
     constructor Create;
     destructor Destroy; override;
@@ -82,6 +100,10 @@ type
     property FinderItems: TFinderItemList read FFinderItems;
     property InterLeaves: TFinderNodeList read FInterLeaves;
     property UnionLeaves: TFinderNodeList read FUnionLeaves;
+    property InterLeaveList[OwnerName: string]: TFinderNodeList
+      read GetInterLeaveList;
+    property UnionLeaveList[OwnerName: string]: TFinderNodeList
+      read GetUnionLeaveList;
   end;
 
 procedure LogFinder(const S: string);
@@ -268,6 +290,22 @@ begin
   end;
 end;
 
+{ TFinderNodeCollection }
+
+constructor TFinderNodeCollection.Create;
+begin
+  inherited;
+  FInterLeaves := TFinderNodeList.Create(True);
+  FUnionLeaves := TFinderNodeList.Create(True);
+end;
+
+destructor TFinderNodeCollection.Destroy;
+begin
+  FreeAndNil(FUnionLeaves);
+  FreeAndNil(FInterLeaves);
+  inherited;
+end;
+
 { TFinder }
 
 constructor TFinder.Create;
@@ -276,10 +314,12 @@ begin
   FFinderItems := TFinderItemList.Create(True);
   FInterLeaves := TFinderNodeList.Create(True);
   FUnionLeaves := TFinderNodeList.Create(True);
+  FDicLeaves := TDicOwnerFinderNodeCol.Create([doOwnsValues]);
 end;
 
 destructor TFinder.Destroy;
 begin
+  FreeAndNil(FDicLeaves);
   FreeAndNil(FUnionLeaves);
   FreeAndNil(FInterLeaves);
   FreeAndNil(FFinderItems);
@@ -288,11 +328,42 @@ end;
 
 procedure TFinder.Finder(ADatabase: TpFIBDatabase;
   ATransaction: TpFIBTransaction; AFiles: TStrings);
+var ownerName     : string;
+    finderItem    : TFinderItem;
+    finderCol     : TFinderNodeCollection;
+    auxFinderItems: TFinderItemList;
+    auxFinderItem : TFinderItem;
 begin
   FinderFiles(ADatabase, ATransaction, AFiles);
   IntersectLeaves(FinderItems, InterLeaves);
   JoinLeaves(FinderItems, UnionLeaves);
   UnionLeaves.SortItemNameVersion;
+
+  DicLeaves.Clear;
+  for finderItem in FinderItems do
+  begin
+    ownerName := finderItem.OwnerName;
+    if Length(ownerName) <> 0 then
+    begin
+      if not DicLeaves.ContainsKey(ownerName) then
+      begin
+        finderCol := TFinderNodeCollection.Create;
+        DicLeaves.Add(ownerName, finderCol);
+
+        auxFinderItems := TFinderItemList.Create(False);
+        try
+          for auxFinderItem in FinderItems do
+            if SameText(auxFinderItem.OwnerName, ownerName) then
+              auxFinderItems.Add(auxFinderItem);
+
+          IntersectLeaves(auxFinderItems, finderCol.InterLeaves);
+          JoinLeaves(auxFinderItems, finderCol.UnionLeaves);
+        finally
+          auxFinderItems.Free;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure TFinder.Finder(ADatabase: TpFIBDatabase;
@@ -429,6 +500,22 @@ begin
   finally
     query.Free;
   end;
+end;
+
+function TFinder.GetInterLeaveList(OwnerName: string): TFinderNodeList;
+var finderCol: TFinderNodeCollection;
+begin
+  if DicLeaves.TryGetValue(OwnerName, finderCol) then
+    Result := finderCol.InterLeaves
+  else Result := nil;
+end;
+
+function TFinder.GetUnionLeaveList(OwnerName: string): TFinderNodeList;
+var finderCol: TFinderNodeCollection;
+begin
+  if DicLeaves.TryGetValue(OwnerName, finderCol) then
+    Result := finderCol.UnionLeaves
+  else Result := nil;
 end;
 
 class procedure TFinder.IntersectLeaves(AFinderItems: TFinderItemList;

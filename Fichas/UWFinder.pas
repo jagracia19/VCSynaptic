@@ -183,7 +183,7 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
         if ACol < GRID_FIXED_COLS then
         begin
           case ACol of
-            GRID_COL_FILE : Result := finderItem.OwnerName; //ExtractFileName(finderItem.Filename);
+            GRID_COL_FILE : Result := ExtractFileName(finderItem.Filename);
             GRID_COL_VER  :
               if finderItem.Root <> nil then
                 Result := IntToStr(finderItem.Root.VersionOrder);
@@ -194,10 +194,12 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
   end;
 
   function GetTextDataColor(ACol, ARow: integer): TColor;
-  var itemNode  : TFinderNode;
-      unionNode : TFinderNode;
-      interNode : TFinderNode;
-      finderItem: TFinderItem;
+  var itemNode    : TFinderNode;
+      unionNode   : TFinderNode;
+      interNode   : TFinderNode;
+      finderItem  : TFinderItem;
+      finderNodes : TFinderNodeList;
+      ownerName   : string;
   begin
     Result := clWindow;
     if ARow >= GRID_FIXED_ROWS then
@@ -217,7 +219,24 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
             if itemNode <> nil then
             begin
               if interNode <> nil then Result := clGreen
-              else Result := clYellow;
+              else
+              begin
+                Result := clYellow;
+
+                ownerName := finderItem.OwnerName;
+                if Length(ownerName) <> 0 then
+                begin
+                  finderNodes := Finder.InterLeaveList[finderItem.OwnerName];
+                  if finderNodes <> nil then
+                  begin
+                    interNode := finderNodes.Find(unionNode.ItemName,
+                        unionNode.VersionOrder);
+                    if (interNode <> nil) and
+                       SameText(ownerName, interNode.ItemName)
+                    then Result := $00b8ff;
+                  end;
+                end;
+              end;
             end;
           end;
         end;

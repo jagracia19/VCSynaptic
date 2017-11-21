@@ -58,10 +58,14 @@ begin
 end;
 
 procedure TestFinde.TestFinderDirectory;
-var files: TStringDynArray;
+var files       : TStringDynArray;
+    finderNodes : TFinderNodeList;
 begin
   files := TDirectory.GetFiles('C:\VCS2\OptiFlow2\Ausreo\Release\Win32');
   Finder.Finder(DataModule.Database, DataModule.Transaction, files);
+
+  //finderNodes := Finder.InterLeaveList['Library2'];
+  //Assert(finderNodes.ToString = 'patata', finderNodes.ToString);
 end;
 
 procedure TestFinde.TestFinderFiles;
