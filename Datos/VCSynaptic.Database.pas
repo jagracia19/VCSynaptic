@@ -48,6 +48,8 @@ type
     class procedure Get(Query: TpFIBQuery; Item: TItem);
     class function GetNameFromAlias(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; const Alias: string): string;
+    class function GetItemTypeFromName(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const ItemName: string): TItemType;
     class function CreateItem(Query: TpFIBQuery; AOwner: TComponent): TItem;
     class function ReadItemName(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; Owner: TComponent;
@@ -264,6 +266,36 @@ begin
     Item.Name := FieldByName('name').AsString;
     Item.Alias := FieldByName('alias').AsString;
     Item.RelativePath := FieldByName('path').AsString;
+  end;
+end;
+
+class function TItemRelation.GetItemTypeFromName(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const ItemName: string): TItemType;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text := 'select item_type from item where (name=:name)';
+
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('name').AsString := ItemName;
+      query.ExecQuery;
+      if not query.Eof then
+        Result := StrToItemType(query.FieldByName('item_type').AsString)
+      else raise Exception.Create('Item name not found');
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
   end;
 end;
 
