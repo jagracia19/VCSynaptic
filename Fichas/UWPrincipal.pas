@@ -20,9 +20,13 @@ type
     MIVersiones: TMenuItem;
     ActionList1: TActionList;
     ActionVerVersiones: TAction;
+    MITools: TMenuItem;
+    MIFinder: TMenuItem;
+    ActionFinder: TAction;
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ActionVerVersionesExecute(Sender: TObject);
+    procedure ActionFinderExecute(Sender: TObject);
   private
     FDMItems: TDMItems;
     FFormItems: TWItems;
@@ -34,6 +38,7 @@ type
     procedure HandleEditVersion(Sender: TObject; const ItemName: string);
     procedure ShowCompose(const AItemName: string; AVersionOrder: Integer);
     procedure HideCompose;
+    procedure ShowFinder;
     function FindTabSheet(const ACaption: string): Integer;
     function GetDMItems: TDMItems;
     function GetFormItems: TWItems;
@@ -62,7 +67,8 @@ uses
   UCache,
   UDMPrincipal,
   UDMItemVersion,
-  UWMaster;
+  UWMaster,
+  UWFinder;
 
 {$R *.dfm}
 
@@ -112,6 +118,11 @@ end;
 ////////////////////////////////////////////////////////////////////////////////
 
 { TWPrincipal }
+
+procedure TWPrincipal.ActionFinderExecute(Sender: TObject);
+begin
+  ShowFinder;
+end;
 
 procedure TWPrincipal.ActionVerVersionesExecute(Sender: TObject);
 begin
@@ -272,6 +283,18 @@ begin
   FormCompose.Items := ItemCache;
   FormCompose.Compose(AItemName, AVersionOrder);
   FormCompose.Show;
+end;
+
+procedure TWPrincipal.ShowFinder;
+var form: TWFinder;
+begin
+  Application.CreateForm(TWFinder, form);
+  try
+    form.DataModule.Database := DMPrincipal.Database;
+    form.ShowModal;
+  finally
+    form.Free;
+  end;
 end;
 
 procedure TWPrincipal.ShowItems;

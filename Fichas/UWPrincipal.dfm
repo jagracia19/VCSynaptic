@@ -44,6 +44,13 @@ object WPrincipal: TWPrincipal
         Action = ActionVerVersiones
       end
     end
+    object MITools: TMenuItem
+      Caption = 'Tools'
+      object MIFinder: TMenuItem
+        Action = ActionFinder
+        ShortCut = 16454
+      end
+    end
   end
   object ActionList1: TActionList
     Left = 408
@@ -51,6 +58,10 @@ object WPrincipal: TWPrincipal
     object ActionVerVersiones: TAction
       Caption = 'Versiones'
       OnExecute = ActionVerVersionesExecute
+    end
+    object ActionFinder: TAction
+      Caption = 'Finder'
+      OnExecute = ActionFinderExecute
     end
   end
 end

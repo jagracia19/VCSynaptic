@@ -5,7 +5,7 @@ interface
 uses
   VCSynaptic.Classes,
   pFIBDatabase, pFIBQuery,
-  SysUtils, Classes, Generics.Collections, Types;
+  SysUtils, Classes, Generics.Defaults, Generics.Collections, Types;
 
 type
   TFinderNode = class(TComponent)
@@ -33,6 +33,8 @@ type
     function Find(const ItemName: string; VersionOrder: Integer): TFinderNode;
     procedure CopyList(Source: TFinderNodeList);
     procedure Intersect(Source: TFinderNodeList);
+    procedure Union(Source: TFinderNodeList);
+    procedure SortItemNameVersion;
   end;
 
   TFinderItem = class(TComponent)
@@ -40,12 +42,14 @@ type
     FFilename: string;
     FRoot: TFinderNode;
     FLeaves: TFinderNodeList;
+    FOwnerName: string; // item owner name
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     property Filename: string read FFilename write FFilename;
     property Root: TFinderNode read FRoot write FRoot;
     property Leaves: TFinderNodeList read FLeaves;
+    property OwnerName: string read FOwnerName write FOwnerName;
   end;
 
   TFinderItemList = class(TObjectList<TFinderItem>)
@@ -56,15 +60,18 @@ type
   TFinder = class
   private
     FFinderItems: TFinderItemList;
-    FLeaves: TFinderNodeList;
+    FInterLeaves: TFinderNodeList;
+    FUnionLeaves: TFinderNodeList;
   protected
     class procedure FindOwners(ADatabase: TpFIBDatabase;
       ATransaction: TpFIBTransaction; AFinderNode: TFinderNode;
       AFinderItem: TFinderItem);
-    class procedure IntersectLeaves(AFinderItems: TFinderItemList;
-      ALeaves: TFinderNodeList);
     procedure FinderFiles(ADatabase: TpFIBDatabase;
       ATransaction: TpFIBTransaction; AFiles: TStrings);
+    class procedure IntersectLeaves(AFinderItems: TFinderItemList;
+      ALeaves: TFinderNodeList);
+    class procedure JoinLeaves(AFinderItems: TFinderItemList;
+      ALeaves: TFinderNodeList);
   public
     constructor Create;
     destructor Destroy; override;
@@ -73,7 +80,8 @@ type
     procedure Finder(ADatabase: TpFIBDatabase;
       ATransaction: TpFIBTransaction; AFiles: TStringDynArray); overload;
     property FinderItems: TFinderItemList read FFinderItems;
-    property Leaves: TFinderNodeList read FLeaves;
+    property InterLeaves: TFinderNodeList read FInterLeaves;
+    property UnionLeaves: TFinderNodeList read FUnionLeaves;
   end;
 
 procedure LogFinder(const S: string);
@@ -85,13 +93,17 @@ implementation
 
 uses
   VCSynaptic.Database,
+  {$IFDEF TEST}
   ULogger,
+  {$ENDIF}
   UHash;
 
 procedure LogFinder(const S: string);
 begin
+  {$IFDEF TEST}
   if Length(FileLogFinder) <> 0 then
     LoggerWriteRaw(FileLogFinder, S);
+  {$ENDIF}
 end;
 
 { TFinderNode }
@@ -215,6 +227,20 @@ begin
   end;
 end;
 
+procedure TFinderNodeList.SortItemNameVersion;
+begin
+  Sort(TComparer<TFinderNode>.Construct(
+    function (const Node1, Node2: TFinderNode): Integer
+    begin
+      Result := CompareText(Node1.ItemName, Node2.ItemName);
+      if Result = 0 then
+      begin
+        Result := Node1.VersionOrder - Node2.VersionOrder;
+      end;
+    end
+  ));
+end;
+
 function TFinderNodeList.ToString: string;
 var finderNode:  TFinderNode;
 begin
@@ -226,18 +252,36 @@ begin
   end;
 end;
 
+procedure TFinderNodeList.Union(Source: TFinderNodeList);
+var auxFinderNode : TFinderNode;
+    finderNode    : TFinderNode;
+begin
+  for finderNode in Source do
+  begin
+    auxFinderNode := Find(finderNode.ItemName, finderNode.VersionOrder);
+    if auxFinderNode = nil then
+    begin
+      auxFinderNode := TFinderNode.Create(nil);
+      Add(auxFinderNode);
+      auxFinderNode.Assign(finderNode);
+    end;
+  end;
+end;
+
 { TFinder }
 
 constructor TFinder.Create;
 begin
   inherited;
   FFinderItems := TFinderItemList.Create(True);
-  FLeaves := TFinderNodeList.Create(True);
+  FInterLeaves := TFinderNodeList.Create(True);
+  FUnionLeaves := TFinderNodeList.Create(True);
 end;
 
 destructor TFinder.Destroy;
 begin
-  FreeAndNil(FLeaves);
+  FreeAndNil(FUnionLeaves);
+  FreeAndNil(FInterLeaves);
   FreeAndNil(FFinderItems);
   inherited;
 end;
@@ -246,7 +290,9 @@ procedure TFinder.Finder(ADatabase: TpFIBDatabase;
   ATransaction: TpFIBTransaction; AFiles: TStrings);
 begin
   FinderFiles(ADatabase, ATransaction, AFiles);
-  IntersectLeaves(FinderItems, Leaves);
+  IntersectLeaves(FinderItems, InterLeaves);
+  JoinLeaves(FinderItems, UnionLeaves);
+  UnionLeaves.SortItemNameVersion;
 end;
 
 procedure TFinder.Finder(ADatabase: TpFIBDatabase;
@@ -292,6 +338,8 @@ begin
         finderItem := TFinderItem.Create(nil);
         FinderItems.Add(finderItem);
         finderItem.Filename := filename;
+        finderItem.OwnerName := TItemRelation.GetRootOwnerFromName(ADatabase,
+            ATransaction, itemName);
 
         finderNode := TFinderNode.Create(nil);
         finderNode.ItemName := itemName;
@@ -404,7 +452,17 @@ begin
     LogFinder(Format('%s -> %s', [ExtractFileName(finderItem.Filename),
         finderItem.Leaves.ToString]));
   end;
-  LogFinder(Format('%s -> %s', ['Intersect', ALeaves.ToString]));
+  LogFinder(Format('%s INTER %s', ['Intersect', ALeaves.ToString]));
+end;
+
+class procedure TFinder.JoinLeaves(AFinderItems: TFinderItemList;
+  ALeaves: TFinderNodeList);
+var finderItem: TFinderItem;
+begin
+  ALeaves.Clear;
+  for finderItem in AFinderItems do
+    ALeaves.Union(finderItem.Leaves);
+  LogFinder(Format('%s UNION %s', ['Intersect', ALeaves.ToString]));
 end;
 
 end.

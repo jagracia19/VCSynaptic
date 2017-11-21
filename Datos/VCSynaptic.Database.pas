@@ -50,6 +50,10 @@ type
       Transaction: TpFIBTransaction; const Alias: string): string;
     class function GetItemTypeFromName(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; const ItemName: string): TItemType;
+    class function GetOwnerFromName(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const ItemName: string): string;
+    class function GetRootOwnerFromName(Database: TpFIBDatabase;
+      Transaction: TpFIBTransaction; const ItemName: string): string;
     class function CreateItem(Query: TpFIBQuery; AOwner: TComponent): TItem;
     class function ReadItemName(Database: TpFIBDatabase;
       Transaction: TpFIBTransaction; Owner: TComponent;
@@ -326,6 +330,59 @@ begin
     end;
   finally
     query.Free;
+  end;
+end;
+
+class function TItemRelation.GetOwnerFromName(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const ItemName: string): string;
+var query   : TpFIBQuery;
+    fCommit : Boolean;
+begin
+  query := TpFIBQuery.Create(nil);
+  try
+    query.Database := Database;
+    query.Transaction := Transaction;
+    query.SQL.Text := 'select owner from item where (name=:name)';
+    fCommit := not Transaction.InTransaction;
+    try
+      if fCommit then Transaction.StartTransaction;
+      query.ParamByName('name').AsString := ItemName;
+      query.ExecQuery;
+      if not query.Eof then
+        Result := query.FieldByName('owner').AsString
+      else raise Exception.Create('Item name not found');
+      query.Close;
+      if fCommit then Transaction.Commit;
+    except
+      if fCommit and Transaction.InTransaction then
+        Transaction.Rollback;
+    end;
+  finally
+    query.Free;
+  end;
+end;
+
+class function TItemRelation.GetRootOwnerFromName(Database: TpFIBDatabase;
+  Transaction: TpFIBTransaction; const ItemName: string): string;
+var fCommit : Boolean;
+    owner   : string;
+    bOwner  : Boolean;
+begin
+  Result := '';
+  fCommit := not Transaction.InTransaction;
+  try
+    if fCommit then Transaction.StartTransaction;
+    owner := ItemName;
+    repeat
+      owner := GetOwnerFromName(Database, Transaction, owner);
+      bOwner := Length(owner) <> 0;
+      if bOwner then
+        Result := owner;
+    until not bOwner;
+    if fCommit then Transaction.Commit;
+  except
+    if fCommit and Transaction.InTransaction then
+      Transaction.Rollback;
   end;
 end;
 

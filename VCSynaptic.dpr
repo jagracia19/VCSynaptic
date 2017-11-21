@@ -25,7 +25,10 @@ uses
   UWDate in 'Fichas\UWDate.pas' {WDate},
   VCSynaptic.Functions in 'VCSynaptic.Functions.pas',
   UDropFileControl in 'UDropFileControl.pas',
-  UWMasterItemVersion in 'Fichas\UWMasterItemVersion.pas' {WMasterItemVersion};
+  UWMasterItemVersion in 'Fichas\UWMasterItemVersion.pas' {WMasterItemVersion},
+  UWFinder in 'Fichas\UWFinder.pas' {WFinder},
+  UDMFinder in 'Datos\UDMFinder.pas' {DMFinder: TDataModule},
+  UFinder in 'UFinder.pas';
 
 {$R *.res}
 

@@ -22,6 +22,7 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    procedure TestFindRootOwner;
     procedure TestFinderFiles;
     procedure TestFinderDirectory;
   end;
@@ -69,6 +70,18 @@ begin
   Files.Add('C:\VCS2\OptiFlow2\Ausreo\Release\Win32\OptiFlowVarLog.bpl');
   Files.Add('C:\VCS2\OptiFlow2\Ausreo\Release\Win32\fbclient.dll');
   Finder.Finder(DataModule.Database, DataModule.Transaction, Files);
+end;
+
+procedure TestFinde.TestFindRootOwner;
+var itemOwner: string;
+begin
+  itemOwner := TItemRelation.GetOwnerFromName(DataModule.Database,
+      DataModule.Transaction, 'OptiFlowCommonBpl');
+  Assert(SameText(itemOwner, 'OptiFlowCommon'));
+
+  itemOwner := TItemRelation.GetRootOwnerFromName(DataModule.Database,
+      DataModule.Transaction, 'OptiFlowCommonBpl');
+  Assert(SameText(itemOwner, 'OptiFlowLibrary'));
 end;
 
 initialization
