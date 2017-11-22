@@ -7,7 +7,7 @@ uses
   UFinder,
   UDMFinder,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, ActnList, ComCtrls, ToolWin, Grids;
+  Dialogs, ExtCtrls, ActnList, ComCtrls, ToolWin, Grids, Math;
 
 type
   TWFinder = class(TForm)
@@ -59,13 +59,24 @@ uses
 {$R *.dfm}
 
 const
+  GRID_COL_WIDTH_MIN      = 60;
+  GRID_COL_FILE_WIDTH     = 180;
+  GRID_COL_VER_OR_WIDTH   = 30;
+  GRID_COL_VER_NM_WIDTH   = 60;
+  GRID_COL_VER_DT_WIDTH   = 70;
+
   GRID_ROW_ITEM   = 0;  GRID_ROW_TITLES = GRID_ROW_ITEM;
-  GRID_ROW_VER    = 1;
-  GRID_FIXED_ROWS = 2;
+  GRID_ROW_VER_OR = 1;
+  GRID_ROW_VER_NM = 2;
+  GRID_ROW_VER_DT = 3;
+  GRID_FIXED_ROWS = 4;
 
   GRID_COL_FILE   = 0;
-  GRID_COL_VER    = 1;
-  GRID_FIXED_COLS = 2;
+  GRID_COL_VER_OR = 1;
+  GRID_COL_VER_NM = 2;
+  GRID_COL_VER_DT = 3;
+  //GRID_FIXED_COLS = 4;
+  GRID_FIXED_COLS = 3;
 
   TXT_MARG      : TPoint = (x: 4; y: 2);
   BTN_WIDTH     = 12;
@@ -166,8 +177,10 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
     begin
       if ARow = GRID_ROW_TITLES then
         case ACol of
-          GRID_COL_FILE : Result := 'Filename';
-          GRID_COL_VER  : Result := 'Ver';
+          GRID_COL_FILE   : Result := 'Filename';
+          GRID_COL_VER_OR : Result := 'Ord';
+          GRID_COL_VER_NM : Result := 'Ver';
+          GRID_COL_VER_DT : Result := 'Date';
         end
     end
     else
@@ -176,7 +189,9 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
       if finderNode <> nil then
         case ARow of
           GRID_ROW_ITEM: Result := finderNode.ItemName;
-          GRID_ROW_VER: Result := IntToStr(finderNode.VersionOrder);
+          GRID_ROW_VER_OR: Result := IntToStr(finderNode.VersionOrder);
+          GRID_ROW_VER_NM: Result := finderNode.VersionNumber;
+          GRID_ROW_VER_DT: Result := DateToStr(finderNode.VersionDate);
         end;
     end;
   end;
@@ -192,12 +207,16 @@ procedure TWFinder.GridDrawCell(Sender: TObject; ACol, ARow: Integer;
       if ACol < GRID_FIXED_COLS then
       begin
         case ACol of
-          GRID_COL_FILE : Result := ExtractFileName(filename);
-          GRID_COL_VER  :
+          GRID_COL_FILE   : Result := ExtractFileName(filename);
+          GRID_COL_VER_OR, GRID_COL_VER_NM, GRID_COL_VER_DT:
           begin
             finderItem := GetRowFinderItem(ARow);
             if (finderItem <> nil) and (finderItem.Root <> nil) then
-              Result := IntToStr(finderItem.Root.VersionOrder);
+              case ACol of
+                GRID_COL_VER_OR: Result := IntToStr(finderItem.Root.VersionOrder);
+                GRID_COL_VER_NM: Result := finderItem.Root.VersionNumber;
+                GRID_COL_VER_DT: Result := DateToStr(finderItem.Root.VersionDate);
+              end;
           end;
         end
       end
@@ -388,17 +407,22 @@ begin
 end;
 
 procedure TWFinder.ResizeGrid;
-var col: Integer;
-    w  : Integer;
+var col : Integer;
+    w   : Integer;
+    wFix: Integer;
 begin
-  Grid.ColWidths[GRID_COL_FILE] := 120;
-  Grid.ColWidths[GRID_COL_VER] := 40;
-  w := Grid.ClientWidth - Grid.ColWidths[GRID_COL_FILE] -
-       Grid.ColWidths[GRID_COL_VER] - 30;
+  Grid.ColWidths[GRID_COL_FILE] := GRID_COL_FILE_WIDTH;
+  Grid.ColWidths[GRID_COL_VER_OR] := GRID_COL_VER_OR_WIDTH;
+  Grid.ColWidths[GRID_COL_VER_NM] := GRID_COL_VER_NM_WIDTH;
+  Grid.ColWidths[GRID_COL_VER_DT] := GRID_COL_VER_DT_WIDTH;
+  wFix := 0;
+  for col := 0 to Grid.FixedCols-1 do
+    wFix := wFix + Grid.ColWidths[col];
+  w := Grid.ClientWidth - wFix - 30;
   w := w div (Grid.ColCount-GRID_FIXED_COLS);
-  for col := 0 to Grid.ColCount-1 do
-    if not (col in [GRID_COL_FILE, GRID_COL_VER]) then
-      Grid.ColWidths[col] := w;
+  w := Max(w, GRID_COL_WIDTH_MIN);
+  for col := Grid.FixedCols to Grid.ColCount-1 do
+    Grid.ColWidths[col] := w;
 end;
 
 procedure TWFinder.UpdateFinder;
@@ -416,6 +440,7 @@ begin
   if Grid.RowCount > GRID_FIXED_ROWS then
     Grid.FixedRows := GRID_FIXED_ROWS;
   Grid.ColCount := AColCount + GRID_FIXED_COLS;
+  Grid.FixedCols := GRID_FIXED_COLS;
   Grid.Invalidate;
 end;
 

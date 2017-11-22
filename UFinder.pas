@@ -4,6 +4,7 @@ interface
 
 uses
   VCSynaptic.Classes,
+  CodeSiteLogging,
   pFIBDatabase, pFIBQuery,
   SysUtils, Classes, Generics.Defaults, Generics.Collections, Types;
 
@@ -13,6 +14,8 @@ type
     FItemName: string;
     FItemType: TItemType;
     FVersionOrder: Integer;
+    FVersionNumber: string;
+    FVersionDate: TDate;
     function GetCount: Integer;
     function GetChildrenNode(Index: Integer): TFinderNode;
   public
@@ -23,6 +26,8 @@ type
     property ItemName: string read FItemName write FItemName;
     property ItemType: TItemType read FItemType write FItemType;
     property VersionOrder: Integer read FVersionOrder write FVersionOrder;
+    property VersionNumber: string read FVersionNumber write FVersionNumber;
+    property VersionDate: TDate read FVersionDate write FVersionDate;
     property Count: Integer read GetCount;
     property Children[index: Integer]: TFinderNode read GetChildrenNode;
   end;
@@ -35,6 +40,7 @@ type
     procedure Intersect(Source: TFinderNodeList);
     procedure Union(Source: TFinderNodeList);
     procedure SortItemNameVersion;
+    procedure FilterItemName(ItemNames: TStrings);
   end;
 
   TFinderItem = class(TComponent)
@@ -139,6 +145,8 @@ begin
     FItemName := src.ItemName;
     FItemType := src.ItemType;
     FVersionOrder := src.VersionOrder;
+    FVersionNumber := src.VersionNumber;
+    FVersionDate := src.VersionDate;
     // ??? implement assign children
   end;
 end;
@@ -221,6 +229,16 @@ begin
     Add(newFinderNode);
     newFinderNode.Assign(srcFinderNode);
   end;
+end;
+
+procedure TFinderNodeList.FilterItemName(ItemNames: TStrings);
+var I: Integer;
+begin
+  I := 0;
+  while I < Count do
+    if ItemNames.IndexOf(Items[I].ItemName) <> -1 then
+      Inc(I)
+    else Delete(I);
 end;
 
 function TFinderNodeList.Find(const ItemName: string;
@@ -333,18 +351,26 @@ var ownerName     : string;
     finderCol     : TFinderNodeCollection;
     auxFinderItems: TFinderItemList;
     auxFinderItem : TFinderItem;
+    owners        : TStrings;
 begin
   FinderFiles(ADatabase, ATransaction, AFiles);
-  IntersectLeaves(FinderItems, InterLeaves);
-  JoinLeaves(FinderItems, UnionLeaves);
-  UnionLeaves.SortItemNameVersion;
 
-  DicLeaves.Clear;
-  for finderItem in FinderItems do
-  begin
-    ownerName := finderItem.OwnerName;
-    if Length(ownerName) <> 0 then
-    begin
+  owners := TStringList.Create;
+  try
+    // lista de proyectos propietarios de los ficheros
+    for finderItem in FinderItems do
+      if Length(finderItem.OwnerName) <> 0 then
+        owners.Add(finderItem.OwnerName);
+
+    IntersectLeaves(FinderItems, InterLeaves);
+    JoinLeaves(FinderItems, UnionLeaves);
+    UnionLeaves.SortItemNameVersion;
+
+    // filter union leaves by owners
+    UnionLeaves.FilterItemName(owners);
+
+    DicLeaves.Clear;
+    for ownerName in owners do
       if not DicLeaves.ContainsKey(ownerName) then
       begin
         finderCol := TFinderNodeCollection.Create;
@@ -362,7 +388,8 @@ begin
           auxFinderItems.Free;
         end;
       end;
-    end;
+  finally
+    owners.Free;
   end;
 end;
 
@@ -387,7 +414,6 @@ var filename    : string;
     itemName    : string;
     versionHash : string;
     itemVersion : TItemVersion;
-    auxItemName : string;
     finderItem  : TFinderItem;
     finderNode  : TFinderNode;
 begin
@@ -395,12 +421,12 @@ begin
   begin
     itemVersion := TItemVersion.Create(nil);
     try
-      itemName := TItem.GetCamelCaseName(ExtractFileName(filename));
+      //itemName := TItem.GetCamelCaseName(ExtractFileName(filename));
       versionHash := LowerCase(HashFileSHA1(filename));
 
       // buscar item version
       if TItemVersionRelation.ReadItemHash(ADatabase, ATransaction,
-            auxItemName, itemVersion, versionHash)
+            itemName, itemVersion, versionHash)
       then
       begin
         //Assert(itemName = auxItemName);
@@ -417,6 +443,8 @@ begin
         finderNode.ItemType := TItemRelation.GetItemTypeFromName(ADatabase,
             ATransaction, itemName);
         finderNode.VersionOrder := itemVersion.Order;
+        finderNode.VersionNumber := itemVersion.Number;
+        finderNode.VersionDate := itemVersion.Date;
         finderItem.Root := finderNode;
         finderItem.Leaves.Add(finderNode);
         LogFinder(finderItem.Leaves.ToString);
@@ -432,12 +460,15 @@ end;
 class procedure TFinder.FindOwners(ADatabase: TpFIBDatabase;
   ATransaction: TpFIBTransaction; AFinderNode: TFinderNode;
   AFinderItem: TFinderItem);
-var query       : TpFIBQuery;
-    fCommit     : Boolean;
-    itemName    : string;
-    versionOrder: Integer;
-    finderNode  : TFinderNode;
+var query         : TpFIBQuery;
+    fCommit       : Boolean;
+    itemName      : string;
+    versionOrder  : Integer;
+    versionNumber : string;
+    versionDate   : TDate;
+    finderNode    : TFinderNode;
 begin
+  try
   query := TpFIBQuery.Create(nil);
   try
     query.Database := ADatabase;
@@ -447,8 +478,11 @@ begin
     try
       // read items owners
       query.SQL.Text :=
-          'select owner_item_name, owner_version_order ' +
+          'select owner_item_name, owner_version_order, ' +
+          ' version_number, version_date ' +
           'from item_link ' +
+          'join item_version on ' +
+          ' (item_name=owner_item_name) and (version_order=owner_version_order) ' +
           'where ' +
           ' (child_item_name=:child_item_name) and ' +
           ' (child_version_order=:child_version_order) ' +
@@ -467,6 +501,8 @@ begin
           // item owner
           itemName := query.FieldByName('owner_item_name').AsString;
           versionOrder := query.FieldByName('owner_version_order').AsInteger;
+          versionNumber := query.FieldByName('version_number').AsString;
+          versionDate := query.FieldByName('version_date').AsDate;
           query.Next;
 
           // find item in tree nodes
@@ -480,6 +516,8 @@ begin
             finderNode.ItemType := TItemRelation.GetItemTypeFromName(
                 ADatabase, ATransaction, itemName);
             finderNode.VersionOrder := versionOrder;
+            finderNode.VersionNumber := versionNumber;
+            finderNode.VersionDate := versionDate;
             AFinderItem.Leaves.Add(finderNode);
             LogFinder(AFinderItem.Leaves.ToString);
 
@@ -499,6 +537,14 @@ begin
     end;
   finally
     query.Free;
+  end;
+  except
+    on E: Exception do
+    begin
+      CodeSite.Send(E.Message);
+      raise;
+    end;
+
   end;
 end;
 

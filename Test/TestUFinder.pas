@@ -61,7 +61,9 @@ procedure TestFinde.TestFinderDirectory;
 var files       : TStringDynArray;
     finderNodes : TFinderNodeList;
 begin
-  files := TDirectory.GetFiles('C:\VCS2\OptiFlow2\Ausreo\Release\Win32');
+  //files := TDirectory.GetFiles('C:\VCS2\OptiFlow2\Ausreo\Release\Win32');
+  //files := TDirectory.GetFiles('C:\SSWRed\DataProMachine');
+  files := TDirectory.GetFiles('C:\SSWRed\OptiFlowTVSC\OptiFlow');
   Finder.Finder(DataModule.Database, DataModule.Transaction, files);
 
   //finderNodes := Finder.InterLeaveList['Library2'];
